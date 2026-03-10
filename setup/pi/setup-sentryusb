@@ -430,6 +430,7 @@ function update_sentryusb_binary () {
   setup_progress "Updating SentryUSB binary..."
   local BINARY_INSTALL_DIR="/opt/sentryusb"
   local BINARY_NAME="sentryusb"
+  local REPO="Scottmg1"
   local BINARY_SUFFIX
 
   case "$(uname -m)" in
