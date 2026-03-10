@@ -1042,37 +1042,39 @@ with open('/dev/rtc0', 'wb') as f:
 }
 
 function set_time () {
-  log "Trying to set time..."
+  echo -n set_time > /proc/self/comm
+  log "Background time sync started, waiting for connection..."
+  
   local -r uptime_start=$(awk '{print $1}' /proc/uptime)
   local -r clocktime_start=$(date +%s.%N)
-  for _ in {1..5}
+  
+  while true
   do
     if sntp -S time.google.com || ntpdig -S time.google.com || sntp -S 129.6.15.28 || ntpdig -S 129.6.15.28
     # Fall back to NIST time server if DNS resolution fails (DNS over TLS & Cert is invalid because of wrong time)
     then
       local -r uptime_end=$(awk '{print $1}' /proc/uptime)
       local -r clocktime_end=$(date +%s.%N)
-      log "$(awk "BEGIN {printf \"Time adjusted by %f seconds after %f seconds\", $clocktime_end-$clocktime_start, $uptime_end-$uptime_start}")"
-      return
-    fi
-    log "sntp failed, retrying..."
-    sleep 2
-  done
-  log "Failed to set time"
-}
+      local -r diff=$(awk "BEGIN {print $clocktime_end-$clocktime_start}")
+      local -r abs_diff=$(awk "BEGIN { d=$diff; if(d<0) d=-d; print d }")
+      
+      local -r days=$(awk "BEGIN {print int($abs_diff/86400)}")
+      local -r hours=$(awk "BEGIN {print int(($abs_diff%86400)/3600)}")
+      local -r minutes=$(awk "BEGIN {print int(($abs_diff%3600)/60)}")
+      local -r seconds=$(awk "BEGIN {printf \"%.2f\", $abs_diff%60}")
 
-function timesyncloop {
-  echo -n timesyncloop > /proc/self/comm
-  while true
-  do
-    sleep "${TIME_SYNC_INTERVAL:-3600}"
-    if ping -c 1 -W 3 time.google.com &>/dev/null; then
-      set_time
-      # Sync NTP-corrected time to RTC battery (Pi never shuts down gracefully)
-      if [ "${RTC_BATTERY_ENABLED:-false}" = "true" ] && isPi5; then
-        rtc_sync_systohc || true
-      fi
+      local readable_diff=""
+      [ "$days" -gt 0 ] && readable_diff+="${days} days, "
+      [ "$hours" -gt 0 ] && readable_diff+="${hours} hours, "
+      [ "$minutes" -gt 0 ] && readable_diff+="${minutes} minutes, "
+      readable_diff+="${seconds} seconds"
+      
+      log "$(awk "BEGIN {printf \"Time adjusted by %s (%f seconds) after %f seconds\", \"$readable_diff\", $diff, $uptime_end-$uptime_start}")"
+      fake-hwclock save || true
+      log "Time sync complete, exiting background process."
+      return 0
     fi
+    sleep 2
   done
 }
 
@@ -1208,9 +1210,9 @@ then
   snapshotloop &
   freespacemanager &
 fi
+set_time &
 logrotator &
 wifichecker &
-timesyncloop &
 
 fix_errors_in_images
 
@@ -1228,8 +1230,6 @@ connect_usb_drives_to_host
 if archive_is_reachable
 then
   fastblink
-
-  set_time
 
   # Seed RTC with NTP-corrected time on first boot
   if [ "${RTC_BATTERY_ENABLED:-false}" = "true" ] && isPi5; then
@@ -1265,8 +1265,6 @@ do
   wait_for_archive_to_be_reachable
 
   fastblink
-
-  set_time
 
   # Sync NTP-corrected time to RTC battery
   if [ "${RTC_BATTERY_ENABLED:-false}" = "true" ] && isPi5; then
