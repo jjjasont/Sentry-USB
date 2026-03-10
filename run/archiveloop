@@ -359,13 +359,13 @@ function wait_for_archive_to_be_reachable () {
       fi
       # wifi_cycle only needed if ap0 somehow still exists
       if (( scan_counter % 300 == 0 )) && iw dev ap0 info &>/dev/null; then
-        log "Archive still unreachable after ${scan_counter}s, cycling WiFi..."
+        #log "Archive still unreachable after ${scan_counter}s, cycling WiFi..."
         wifi_cycle
       fi
     else
       # Away Mode: skip all scanning, AP has exclusive radio access
       if (( scan_counter % 300 == 0 )); then
-        log "Away Mode active, skipping WiFi scan/cycle"
+        #log "Away Mode active, skipping WiFi scan/cycle"
       fi
     fi
     sleep 1
