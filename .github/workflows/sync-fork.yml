@@ -1,0 +1,40 @@
+name: Sync Fork with Upstream
+
+on:
+  schedule:
+    - cron: '0 * * * *'      # Runs hourly (at minute 0 of every hour)
+  workflow_dispatch:         # Allows manual trigger
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+    concurrency:
+      group: sync-fork-main-dev
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout your repository
+        uses: actions/checkout@v6
+        with:
+          ref: main-dev
+          fetch-depth: 0
+          token: ${{ secrets.PAT }}
+
+      - name: Sync from Upstream
+        run: |
+          git remote add upstream https://github.com/Scottmg1/Sentry-USB.git 2>/dev/null || true
+          
+          git fetch upstream
+          git fetch origin
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          echo "Rebasing main-dev onto latest upstream/main-dev (clean linear history)..."
+          git rebase upstream/main-dev
+          
+          echo "Pushing updated branch to your fork..."
+          git push origin main-dev --force-with-lease
