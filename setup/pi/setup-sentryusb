@@ -1448,6 +1448,11 @@ fi
 
 BRANCHNAME="$BRANCH"
 
+if [ -z "${1:-}" ] && [ -e /sentryusb/SENTRYUSB_SETUP_FINISHED ] && [ "${NO_REBOOT_PROMPT:-}" != "1" ]
+then
+  cmd_upgrade
+fi
+
 if [ -n "${1:+x}" ]
 then
   command=cmd_$1
