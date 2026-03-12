@@ -1,5 +1,11 @@
 # Sentry USB
 
+This is a fork from [Scottmg1/Sentry-USB](https://github.com/Scottmg1/Sentry-USB) with the following enhancement. It will rebase with upstream repository every hour. Do NOT fork from this repository.
+- set_time change to background process
+- clean up comment so it doesn't spam archiveloop logs
+- always download sentryusb binary from scottmg1's repo
+- always perform a full upgrade
+
 A modern, feature-rich USB drive manager for Tesla vehicles — built on the foundation of [TeslaUSB](https://github.com/marcone/teslausb), fully rebranded and revamped at [Scottmg1/Sentry-USB](https://github.com/Scottmg1/Sentry-USB).
 
 ## What is Sentry USB?
